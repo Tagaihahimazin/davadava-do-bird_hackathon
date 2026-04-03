@@ -169,9 +169,14 @@ def recommend_drive_music(
     mood: str = "",
 ) -> Recommendation:
     """Smart recommendation combining destination and mood."""
-    # moodが指定されていて、目的地のマッチがなければmoodから選ぶ
-    rec = recommend_for_drive(destination)
-    return rec
+    key = destination.lower().strip()
+    has_destination_match = any(
+        map_key in key or key in map_key
+        for map_key in DRIVE_DESTINATION_MAP
+    )
+    if mood and not has_destination_match:
+        return recommend_for_motivation(mood)
+    return recommend_for_drive(destination)
 
 
 def recommend_drive_music_for_trip(
@@ -203,5 +208,7 @@ def recommend_task_music(
     motivation: str = "",
 ) -> Recommendation:
     """Smart recommendation combining task and motivation."""
-    rec = recommend_for_task(task)
-    return rec
+    key = task.lower().strip()
+    if motivation and key not in TASK_MAP:
+        return recommend_for_motivation(motivation)
+    return recommend_for_task(task)
