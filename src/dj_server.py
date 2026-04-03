@@ -25,9 +25,11 @@ from spotify import (
 )
 from recommender import (
     recommend_drive_music,
+    recommend_drive_music_for_trip,
     recommend_task_music,
     recommend_for_motivation,
 )
+from maps import get_drive_route_summary, MapsError
 
 mcp = FastMCP("davadava-dj")
 
@@ -168,6 +170,39 @@ def night_drive_music() -> str:
 def highway_drive_music() -> str:
     """Play energetic music for highway/freeway driving."""
     return drive_music("highway", "excited")
+
+
+@mcp.tool()
+def route_summary(origin: str, destination: str) -> str:
+    """Get driving route distance and travel time from origin to destination via Google Maps."""
+    try:
+        route = get_drive_route_summary(origin, destination)
+    except MapsError as exc:
+        return f"Route lookup failed: {exc}"
+
+    return (
+        f"Route: {route.origin} -> {route.destination}\n"
+        f"Distance: {route.distance_text}\n"
+        f"Estimated time: {route.duration_text} ({route.duration_minutes} min)"
+    )
+
+
+@mcp.tool()
+def drive_music_with_route(origin: str, destination: str, mood: str = "") -> str:
+    """Find route time by Google Maps and play a trip-length-aware playlist."""
+    try:
+        route = get_drive_route_summary(origin, destination)
+    except MapsError as exc:
+        return f"Route lookup failed: {exc}"
+
+    rec = recommend_drive_music_for_trip(destination, route.duration_minutes, mood)
+    result = play_playlist(rec.playlist_uri)
+    return (
+        f"Route: {route.origin} -> {route.destination}\n"
+        f"Distance: {route.distance_text}, Time: {route.duration_text}\n"
+        f"Recommendation: {rec.description} ({rec.genre})\n"
+        f"{result}"
+    )
 
 
 # =========================================================================

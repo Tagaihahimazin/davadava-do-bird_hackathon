@@ -111,6 +111,22 @@ DRIVE_DESTINATION_MAP: dict[str, list[Recommendation]] = {
     ],
 }
 
+# 移動時間別
+DRIVE_DURATION_MAP: dict[str, list[Recommendation]] = {
+    "short": [
+        Recommendation("quick pop", "spotify:playlist:37i9dQZF1DXcBWIGoYBM5M", "短距離向けのキャッチーなヒット曲"),
+        Recommendation("urban beats", "spotify:playlist:37i9dQZF1DX0XUsuxWHRQd", "街中移動に合う軽快なビート"),
+    ],
+    "medium": [
+        Recommendation("road trip", "spotify:playlist:37i9dQZF1DXdPec7aLTmlC", "中距離ドライブ向けロードトリップ"),
+        Recommendation("chill drive", "spotify:playlist:37i9dQZF1DX4WYpdgoIcn6", "流し聴きしやすいチル系"),
+    ],
+    "long": [
+        Recommendation("long drive rock", "spotify:playlist:37i9dQZF1DWXRqgorJj26U", "長距離ドライブ向けロック"),
+        Recommendation("epic journey", "spotify:playlist:37i9dQZF1DX1kCIzMYtzum", "長時間でも飽きにくい高揚感"),
+    ],
+}
+
 
 # ---------------------------------------------------------------------------
 # Recommendation engine
@@ -139,6 +155,15 @@ def recommend_for_drive(destination: str) -> Recommendation:
     return random.choice(DRIVE_DESTINATION_MAP["highway"])
 
 
+def recommend_for_drive_duration(duration_minutes: int) -> Recommendation:
+    """Get a recommendation based on trip length."""
+    if duration_minutes <= 30:
+        return random.choice(DRIVE_DURATION_MAP["short"])
+    if duration_minutes <= 90:
+        return random.choice(DRIVE_DURATION_MAP["medium"])
+    return random.choice(DRIVE_DURATION_MAP["long"])
+
+
 def recommend_drive_music(
     destination: str,
     mood: str = "",
@@ -147,6 +172,30 @@ def recommend_drive_music(
     # moodが指定されていて、目的地のマッチがなければmoodから選ぶ
     rec = recommend_for_drive(destination)
     return rec
+
+
+def recommend_drive_music_for_trip(
+    destination: str,
+    duration_minutes: int,
+    mood: str = "",
+) -> Recommendation:
+    """Route-aware drive recommendation based on destination and trip length."""
+    destination_rec = recommend_for_drive(destination)
+    duration_rec = recommend_for_drive_duration(duration_minutes)
+
+    # 長めの移動は時間重視、それ以外は目的地の雰囲気を優先
+    if duration_minutes >= 45:
+        chosen = duration_rec
+        reason = f"移動時間 {duration_minutes} 分に合わせた選曲"
+    else:
+        chosen = destination_rec
+        reason = f"目的地 {destination} に合わせた選曲"
+
+    return Recommendation(
+        genre=chosen.genre,
+        playlist_uri=chosen.playlist_uri,
+        description=f"{chosen.description} / {reason}",
+    )
 
 
 def recommend_task_music(
