@@ -6,6 +6,9 @@ VoiceOS からの音声コマンドで Spotify を操作し、
 
 import subprocess
 from urllib.parse import urlencode
+import os
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 from mcp.server.fastmcp import FastMCP
 
@@ -26,6 +29,10 @@ from spotify import (
     set_shuffle,
     set_repeat,
     set_system_volume,
+    search_and_play_auto,
+    search_and_play_track,
+    search_and_play_artist,
+    search_and_play_playlist,
 )
 from recommender import (
     recommend_drive_music,
@@ -177,17 +184,17 @@ def change_system_volume(level: int) -> str:
 
 
 # =========================================================================
-# Smart Recommendations - Driving
+# Smart Recommendations - Driving (Google Maps)
 # =========================================================================
 
 @mcp.tool()
 def drive_music(destination: str, mood: str = "") -> str:
-    """Recommend and play music for driving based on destination.
+    """Recommend and play music for driving based on destination type.
 
-    Destination examples: beach, mountain, city, highway, countryside, night_drive, date.
+    Destination types: beach, mountain, city, highway, countryside, night_drive, date.
     Mood examples: high, low, neutral, stressed, excited.
 
-    Use this when the user is driving or about to drive somewhere.
+    Use this when the user mentions a general type of drive.
     """
     rec = recommend_drive_music(destination, mood)
     result = play_playlist(rec.playlist_uri)
@@ -229,7 +236,14 @@ def route_summary(origin: str, destination: str) -> str:
 
 @mcp.tool()
 def drive_music_with_route(origin: str, destination: str, mood: str = "") -> str:
-    """Find route time by Google Maps and play a trip-length-aware playlist."""
+    """Play music for a drive using Google Maps route info.
+
+    Looks up the actual driving time and distance, then picks a playlist
+    that matches both the destination vibe and the trip length.
+
+    Example: origin="東京駅", destination="湘南海岸"
+    Use this when the user mentions both where they are and where they're going.
+    """
     try:
         route = get_drive_route_summary(origin, destination)
     except MapsError as exc:
@@ -410,6 +424,51 @@ def cheer_me_up() -> str:
 def hype_music() -> str:
     """Play hype/exciting music to match or boost high energy."""
     return mood_music("excited")
+
+
+# =========================================================================
+# Search & Play (specific artist, song, playlist)
+# =========================================================================
+
+@mcp.tool()
+def search_music(query: str) -> str:
+    """Search and play music by artist name, song title, or any query.
+
+    This is the main tool for specific requests like:
+    - "Play Zutomayo" → searches for the artist and plays their music
+    - "Play KICK BACK by Kenshi Yonezu" → finds and plays that exact song
+    - "Play chill jazz playlist" → finds a matching playlist
+
+    Use this whenever the user asks for a specific artist, song, or genre.
+    """
+    return search_and_play_auto(query)
+
+
+@mcp.tool()
+def play_artist(artist_name: str) -> str:
+    """Play music by a specific artist. Searches Spotify and plays their top tracks.
+
+    Examples: Zutomayo, YOASOBI, Kenshi Yonezu, Taylor Swift, etc.
+    """
+    return search_and_play_artist(artist_name)
+
+
+@mcp.tool()
+def play_song(song_name: str) -> str:
+    """Play a specific song by title. You can include the artist name for accuracy.
+
+    Examples: "KICK BACK Kenshi Yonezu", "Idol YOASOBI", "Shape of You"
+    """
+    return search_and_play_track(song_name)
+
+
+@mcp.tool()
+def play_a_playlist(query: str) -> str:
+    """Search for a Spotify playlist and play it.
+
+    Examples: "chill vibes", "J-pop hits", "workout mix"
+    """
+    return search_and_play_playlist(query)
 
 
 # =========================================================================

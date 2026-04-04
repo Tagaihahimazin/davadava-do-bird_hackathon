@@ -8,6 +8,8 @@ venv/
 # Environment
 .env
 .env.local
+src/.env
+src/.spotify_cache
 
 # Build
 dist/
